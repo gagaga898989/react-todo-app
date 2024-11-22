@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTriangleExclamation } from "@fortawesome/free-solid-svg-icons";
 import { sendLineNotification } from "./sendmessage";
 import FireOrbit from "./FireOrbit"; // インポートを追加
+import User2 from "./User2"; // インポートを追加
 
 const App = () => {
   const [todos, setTodos] = useState<Todo[]>([]); // ◀◀ 編集
@@ -21,31 +22,44 @@ const App = () => {
 
   const uncompletedCount = todos.filter((todo: Todo) => !todo.isDone).length;
   const [initialized, setInitialized] = useState(false); // ◀◀ 追加
-  const localStorageKey = "TodoApp"; // ◀◀ 追加
+  const localStorageKey = (username: string) => `TodoApp_${username}`; // ユーザーごとのキーを生成
+  const [showUser, setShowUser] = useState(false); // ログイン画面表示用のステートを追加
+  const [username, setUsername] = useState(""); // ログインユーザー名を管理するステートを追加
+  const removeCompletedTodos = () => {
+    const updatedTodos = todos.filter((todo) => !todo.isDone);
+    setTodos(updatedTodos);
+  };
+
+  const handleLogin = (username: string) => {
+    setUsername(username);
+    setShowUser(false);
+  };
 
   // App コンポーネントの初回実行時のみLocalStorageからTodoデータを復元
   useEffect(() => {
-    const todoJsonStr = localStorage.getItem(localStorageKey);
-    if (todoJsonStr && todoJsonStr !== "[]") {
-      const storedTodos: Todo[] = JSON.parse(todoJsonStr);
-      const convertedTodos = storedTodos.map((todo) => ({
-        ...todo,
-        deadline: todo.deadline ? new Date(todo.deadline) : null,
-      }));
-      setTodos(convertedTodos);
-    } else {
-      // LocalStorage にデータがない場合は initTodos をセットする
-      setTodos(initTodos);
+    if (username) {
+      const todoJsonStr = localStorage.getItem(localStorageKey(username));
+      if (todoJsonStr && todoJsonStr !== "[]") {
+        const storedTodos: Todo[] = JSON.parse(todoJsonStr);
+        const convertedTodos = storedTodos.map((todo) => ({
+          ...todo,
+          deadline: todo.deadline ? new Date(todo.deadline) : null,
+        }));
+        setTodos(convertedTodos);
+      } else {
+        // LocalStorage にデータがない場合は initTodos をセットする
+        setTodos(initTodos);
+      }
+      setInitialized(true);
     }
-    setInitialized(true);
-  }, []);
+  }, [username]);
 
   // 状態 todos または initialized に変更があったときTodoデータを保存
   useEffect(() => {
     if (initialized) {
-      localStorage.setItem(localStorageKey, JSON.stringify(todos));
+      localStorage.setItem(localStorageKey(username), JSON.stringify(todos));
     }
-  }, [todos, initialized]);
+  }, [todos, initialized, username]);
 
   const isValidTodoName = (name: string): string => {
     if (name.length < 2 || name.length > 32) {
@@ -120,13 +134,32 @@ const App = () => {
     <div className="mx-4 mt-10 max-w-2xl md:mx-auto">
       <h1 className="mb-4 text-2xl font-bold">TodoApp</h1>
       <div className="mb-4 flex items-center justify-between">
-        <WelcomeMessage name="gest" uncompletedCount={uncompletedCount} />
-        <button className="rounded-md bg-blue-500 px-3 py-1 font-bold text-white hover:bg-blue-600">
+        <WelcomeMessage
+          name={username || "gest"}
+          uncompletedCount={uncompletedCount}
+        />
+        <button
+          className="rounded-md bg-blue-500 px-3 py-1 font-bold text-white hover:bg-blue-600"
+          onClick={() => setShowUser(true)} // ログインボタンのクリックイベントを追加
+        >
           ログイン
         </button>
       </div>
+      {username === "" && (
+        <div className="text-red-500">
+          gestmodeでブラウジング中 変更が保存されません。
+        </div>
+      )}
       <TodoList todos={todos} updateIsDone={updateIsDone} remove={remove} />
-
+      <button
+        type="button"
+        onClick={removeCompletedTodos}
+        className={
+          "mt-5 rounded-md bg-red-500 px-3 py-1 font-bold text-white hover:bg-red-600"
+        }
+      >
+        完了済みのタスクを削除
+      </button>
       <div className="mt-5 space-y-2 rounded-md border p-3">
         <h2 className="text-lg font-bold">新しいタスクの追加</h2>
         <div>
@@ -209,12 +242,19 @@ const App = () => {
           完了履歴
         </button>
       </div>
-
       {showFireOrbit && (
         <div className="modal">
           <div className="modal-content">
             <FireOrbit todos={todos} />
             <button onClick={() => setShowFireOrbit(false)}>閉じる</button>
+          </div>
+        </div>
+      )}
+      {showUser && (
+        <div className="modal">
+          <div className="modal-content">
+            <User2 onLogin={handleLogin} />
+            <button onClick={() => setShowUser(false)}>閉じる</button>
           </div>
         </div>
       )}

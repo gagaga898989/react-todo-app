@@ -33,6 +33,20 @@ const FireOrbit: React.FC<FireOrbitProps> = ({ todos }) => {
     return acc + todo.priority;
   }, 0);
 
+  const getEncouragementMessage = (points: number): string => {
+    if (points >= 5) {
+      return "素晴らしい！今日はたくさんのタスクを完了しましたね！";
+    } else if (points >= 3) {
+      return "よく頑張りました！もう少しで目標達成です！";
+    } else if (points > 0) {
+      return "良いスタートです！引き続き頑張りましょう！";
+    } else {
+      return "今日はまだタスクが完了していません。頑張ってください！";
+    }
+  };
+
+  const encouragementMessage = getEncouragementMessage(points);
+
   return (
     <div className="fire-orbit">
       <h2>タスクの統計情報</h2>
@@ -48,6 +62,7 @@ const FireOrbit: React.FC<FireOrbitProps> = ({ todos }) => {
         ))}
       </ul>
       <p>ポイント: {points}</p>
+      <p>{encouragementMessage}</p>
     </div>
   );
 };
